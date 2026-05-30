@@ -57,7 +57,7 @@ export function TransactionsClient() {
             className="pl-8 h-8 text-sm"
           />
         </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
+        <Select value={typeFilter} onValueChange={(v) => v && setTypeFilter(v)}>
           <SelectTrigger className="h-8 w-32 text-xs">
             <Filter className="w-3 h-3 mr-1.5" />
             <SelectValue />

@@ -78,7 +78,7 @@ export function SettingsClient({ profile }: Props) {
 
           <div className="space-y-1.5">
             <Label>Meta financeira principal</Label>
-            <Select value={goal} onValueChange={setGoal}>
+            <Select value={goal} onValueChange={(v) => v && setGoal(v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione uma meta" />
               </SelectTrigger>
@@ -92,7 +92,7 @@ export function SettingsClient({ profile }: Props) {
 
           <div className="space-y-1.5">
             <Label>Estilo de vida ({lifestyle}/5)</Label>
-            <Select value={lifestyle} onValueChange={setLifestyle}>
+            <Select value={lifestyle} onValueChange={(v) => v && setLifestyle(v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

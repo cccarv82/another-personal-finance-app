@@ -132,7 +132,7 @@ export function ReportsClient() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip content={customTooltip as React.ComponentType} />
+                <Tooltip content={customTooltip as unknown as never} />
                 <Bar dataKey="income" name="Receita" fill="#00D4AA" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="expense" name="Gastos" fill="#FF4D6A" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -154,7 +154,7 @@ export function ReportsClient() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip content={customTooltip as React.ComponentType} />
+                  <Tooltip content={customTooltip as unknown as never} />
                   <Line
                     type="monotone"
                     dataKey="savings"

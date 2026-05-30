@@ -39,6 +39,7 @@ export type Database = {
           lifestyle_level?: number;
           updated_at?: string;
         };
+        Relationships: [];
       };
       accounts: {
         Row: {
@@ -77,6 +78,7 @@ export type Database = {
           is_active?: boolean;
           include_in_net_worth?: boolean;
         };
+        Relationships: [];
       };
       categories: {
         Row: {
@@ -108,6 +110,7 @@ export type Database = {
           color?: string | null;
           parent_id?: string | null;
         };
+        Relationships: [];
       };
       transactions: {
         Row: {
@@ -163,6 +166,7 @@ export type Database = {
           is_confirmed?: boolean;
           updated_at?: string;
         };
+        Relationships: [];
       };
       financial_goals: {
         Row: {
@@ -201,6 +205,7 @@ export type Database = {
           color?: string | null;
           is_completed?: boolean;
         };
+        Relationships: [];
       };
       ai_insights: {
         Row: {
@@ -228,6 +233,7 @@ export type Database = {
           expires_at?: string | null;
           token_count?: number | null;
         };
+        Relationships: [];
       };
       ai_conversations: {
         Row: {
@@ -251,11 +257,13 @@ export type Database = {
           context_snapshot?: Json | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
+    Views: Record<never, never>;
+    Functions: Record<never, never>;
+    Enums: Record<never, never>;
+    CompositeTypes: Record<never, never>;
   };
 };
 

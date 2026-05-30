@@ -38,10 +38,11 @@ export async function POST(request: Request) {
   ]);
 
   const profile = profileResult.data!;
-  const currentTx = currentTxResult.data ?? [];
-  const prevTx = prevTxResult.data ?? [];
+  type TxRow = { type: string; amount: number; categories?: { name: string } | null };
+  const currentTx = (currentTxResult.data ?? []) as unknown as TxRow[];
+  const prevTx = (prevTxResult.data ?? []) as unknown as TxRow[];
 
-  const sumType = (txs: typeof currentTx, type: string) =>
+  const sumType = (txs: TxRow[], type: string) =>
     txs.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
 
   const income = sumType(currentTx, "income");
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
   currentTx
     .filter((t) => t.type === "expense")
     .forEach((t) => {
-      const name = (t as { categories?: { name: string } | null }).categories?.name ?? "Sem categoria";
+      const name = t.categories?.name ?? "Sem categoria";
       categoryTotals[name] = (categoryTotals[name] || 0) + t.amount;
     });
   const topCategories = Object.entries(categoryTotals)

@@ -171,7 +171,7 @@ export function GoalsClient() {
             </div>
             <div className="space-y-1.5">
               <Label>Categoria</Label>
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={category} onValueChange={(v) => v && setCategory(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

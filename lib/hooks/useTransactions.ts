@@ -31,13 +31,13 @@ export function useTransactions(filters?: {
       if (filters?.endDate) query = query.lte("date", filters.endDate);
       if (filters?.categoryId) query = query.eq("category_id", filters.categoryId);
       if (filters?.accountId) query = query.eq("account_id", filters.accountId);
-      if (filters?.type) query = query.eq("type", filters.type);
+      if (filters?.type) query = query.eq("type", filters.type as import("@/lib/supabase/types").TransactionType);
       if (filters?.search) query = query.ilike("description", `%${filters.search}%`);
       if (filters?.limit) query = query.limit(filters.limit);
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as (Transaction & {
+      return (data ?? []) as unknown as (Transaction & {
         categories: { name: string; color: string | null; icon: string | null } | null;
         accounts: { name: string; color: string | null } | null;
       })[];
