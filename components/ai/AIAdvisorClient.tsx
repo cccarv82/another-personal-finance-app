@@ -116,7 +116,7 @@ export function AIAdvisorClient() {
               activeTab === tab ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            {tab === "chat" ? "Chat" : tab === "insights" ? "Pontos de Dor" : "Relatório Mensal"}
+            {tab === "chat" ? "Chat" : tab === "insights" ? "Pontos de Dor" : tab === "report" ? "Relatório Mensal" : "Simulador"}
           </button>
         ))}
       </div>
