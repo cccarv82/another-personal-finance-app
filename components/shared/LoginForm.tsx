@@ -9,6 +9,22 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
+function getWebmailProvider(email: string): { url: string; name: string } | null {
+  const domain = email.split("@")[1]?.toLowerCase() ?? "";
+  if (!domain) return null;
+  if (domain.includes("gmail"))                                          return { url: "https://mail.google.com", name: "Gmail" };
+  if (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live") || domain.includes("msn"))
+                                                                         return { url: "https://outlook.live.com", name: "Outlook" };
+  if (domain.includes("yahoo"))                                          return { url: "https://mail.yahoo.com", name: "Yahoo Mail" };
+  if (domain.includes("icloud") || domain.includes("me.com") || domain.includes("mac.com"))
+                                                                         return { url: "https://www.icloud.com/mail", name: "iCloud Mail" };
+  if (domain.includes("proton") || domain.includes("pm.me"))            return { url: "https://mail.proton.me", name: "Proton Mail" };
+  if (domain.includes("zoho"))                                           return { url: "https://mail.zoho.com", name: "Zoho Mail" };
+  if (domain.includes("uol") || domain.includes("bol") || domain.includes("terra"))
+                                                                         return { url: `https://www.${domain}`, name: domain };
+  return null;
+}
+
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,6 +67,19 @@ export function LoginForm() {
           Link de acesso enviado para{" "}
           <span className="text-foreground font-medium">{email}</span>
         </p>
+        {(() => {
+          const provider = getWebmailProvider(email);
+          return provider ? (
+            <a
+              href={provider.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full h-11 border-2 border-primary bg-primary/10 text-primary font-bold text-xs uppercase tracking-wider transition-colors hover:bg-primary hover:text-primary-foreground"
+            >
+              Abrir {provider.name} →
+            </a>
+          ) : null;
+        })()}
         <div className="border-t border-border pt-4">
           <Button variant="ghost" size="sm" onClick={() => setSent(false)} className="font-mono text-xs uppercase tracking-wider px-0">
             ← Usar outro email
