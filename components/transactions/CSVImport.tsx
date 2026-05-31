@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { parseGenericCSV, parseNubank, parseInter, parseBradesco, parseItau, parseC6, type ParsedTransaction } from "@/lib/utils/csv-import";
-import { useCreateTransaction } from "@/lib/hooks/useTransactions";
+import { categorizeTransactions, resolveOrCreateCategories, type CategorizedTransaction } from "@/lib/ai/categorize";
 import { useAccounts } from "@/lib/hooks/useAccounts";
-import { useCategories } from "@/lib/hooks/useCategories";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils/currency";
 import { createClient } from "@/lib/supabase/client";
-import { Upload, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -31,26 +31,40 @@ interface Props {
 
 export function CSVImport({ open, onClose }: Props) {
   const [dragging, setDragging] = useState(false);
-  const [preview, setPreview] = useState<ParsedTransaction[]>([]);
+  const [preview, setPreview] = useState<CategorizedTransaction[]>([]);
   const [bank, setBank] = useState("auto");
   const [accountId, setAccountId] = useState("");
   const [importing, setImporting] = useState(false);
+  const [categorizing, setCategorizing] = useState(false);
   const [done, setDone] = useState(false);
 
   const { data: accounts = [] } = useAccounts();
-  const { data: expCats = [] } = useCategories("expense");
-  const { data: incCats = [] } = useCategories("income");
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
   const handleFile = useCallback((file: File) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const text = e.target?.result as string;
       const parsed = PARSERS[bank](text);
-      setPreview(parsed);
+      setPreview(parsed.map((t) => ({ ...t })));
+      setCategorizing(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const categorized = await categorizeTransactions(parsed);
+          const withIds = await resolveOrCreateCategories(categorized, supabase, user.id);
+          setPreview(withIds);
+          queryClient.invalidateQueries({ queryKey: ["categories"] });
+        }
+      } catch {
+        // categorization failed, keep uncategorized preview
+      } finally {
+        setCategorizing(false);
+      }
     };
     reader.readAsText(file, "UTF-8");
-  }, [bank]);
+  }, [bank, supabase, queryClient]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -67,10 +81,6 @@ export function CSVImport({ open, onClose }: Props) {
 
     let ok = 0;
     for (const tx of preview) {
-      const catList = tx.type === "income" ? incCats : expCats;
-      const matchedCat = catList.find(c =>
-        tx.description.toLowerCase().includes(c.name.toLowerCase())
-      );
       const { error } = await supabase.from("transactions").insert({
         user_id: user.id,
         account_id: accountId,
@@ -78,7 +88,7 @@ export function CSVImport({ open, onClose }: Props) {
         amount: tx.amount,
         description: tx.description,
         date: tx.date,
-        category_id: matchedCat?.id ?? null,
+        category_id: tx.category_id ?? null,
       });
       if (!error) ok++;
     }
@@ -158,7 +168,14 @@ export function CSVImport({ open, onClose }: Props) {
           {preview.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium">{preview.length} transações detectadas</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-medium">{preview.length} transações detectadas</p>
+                  {categorizing && (
+                    <span className="flex items-center gap-1 text-xs text-primary">
+                      <Sparkles className="w-3 h-3 animate-pulse" /> categorizando...
+                    </span>
+                  )}
+                </div>
                 <div className="flex gap-1.5">
                   <Badge variant="outline" className="text-emerald-400 border-emerald-400/30 text-xs">
                     {preview.filter(t => t.type === "income").length} receitas
@@ -166,32 +183,45 @@ export function CSVImport({ open, onClose }: Props) {
                   <Badge variant="outline" className="text-rose-400 border-rose-400/30 text-xs">
                     {preview.filter(t => t.type === "expense").length} gastos
                   </Badge>
+                  {!categorizing && preview.filter(t => t.category_id).length > 0 && (
+                    <Badge variant="outline" className="text-primary border-primary/30 text-xs">
+                      {preview.filter(t => t.category_id).length} categorizadas
+                    </Badge>
+                  )}
                 </div>
               </div>
-              <div className="max-h-48 overflow-y-auto space-y-1 rounded-md border border-border p-2">
-                {preview.slice(0, 20).map((t, i) => (
+              <div className="max-h-52 overflow-y-auto space-y-1 rounded-md border border-border p-2">
+                {preview.slice(0, 25).map((t, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs py-1">
-                    <span className="text-muted-foreground w-24 shrink-0">{t.date}</span>
-                    <span className="flex-1 truncate">{t.description}</span>
+                    <span className="text-muted-foreground w-20 shrink-0">{t.date}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="truncate block">{t.description}</span>
+                      {t.suggestedCategory && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {t.suggestedCategory.icon} {t.suggestedCategory.name}
+                        </span>
+                      )}
+                    </div>
                     <span className={cn("tabular-nums font-medium shrink-0", t.type === "income" ? "text-emerald-400" : "text-rose-400")}>
                       {t.type === "expense" ? "-" : "+"}{formatCurrency(t.amount)}
                     </span>
                   </div>
                 ))}
-                {preview.length > 20 && (
-                  <p className="text-xs text-muted-foreground text-center py-1">+ {preview.length - 20} mais...</p>
+                {preview.length > 25 && (
+                  <p className="text-xs text-muted-foreground text-center py-1">+ {preview.length - 25} mais...</p>
                 )}
               </div>
 
               <Button
                 className="w-full"
                 onClick={handleImport}
-                disabled={!accountId || importing || done}
+                disabled={!accountId || importing || done || categorizing}
               >
                 {importing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> :
                  done ? <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" /> :
+                 categorizing ? <Sparkles className="w-4 h-4 animate-pulse mr-2" /> :
                  <Upload className="w-4 h-4 mr-2" />}
-                {done ? "Importado!" : importing ? "Importando..." : `Importar ${preview.length} transações`}
+                {done ? "Importado!" : importing ? "Importando..." : categorizing ? "Categorizando..." : `Importar ${preview.length} transações`}
               </Button>
             </div>
           )}

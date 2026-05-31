@@ -86,6 +86,25 @@ Responda SOMENTE em JSON válido com este schema:
 }`;
 }
 
+export function buildCategorizationPrompt(descriptions: string[]): string {
+  return `Você é um sistema de categorização de extratos bancários brasileiros.
+
+Categorize cada descrição abaixo em uma categoria financeira em português do Brasil.
+
+REGRAS OBRIGATÓRIAS:
+- Responda SOMENTE com JSON válido, sem markdown, sem texto adicional
+- Cada chave é a descrição EXATAMENTE como fornecida (não altere)
+- Cada valor: { "categoryName": string, "type": "income"|"expense", "icon": emoji, "color": hex }
+- type "income" APENAS para: salário, rendimentos, reembolsos, PIX/TED recebidos
+- Para o resto use "expense"
+- Categorias sugeridas: Alimentação, Supermercado, Transporte, Saúde, Educação, Moradia, Lazer, Streaming, Seguros, Impostos, Serviços, Compras, Outros
+
+DESCRIÇÕES A CATEGORIZAR:
+${descriptions.map((d) => `- "${d}"`).join("\n")}
+
+RESPONDA APENAS COM O JSON:`;
+}
+
 export function buildChatSystemPrompt(
   profile: Profile,
   recentTransactions: Transaction[],
