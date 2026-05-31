@@ -17,10 +17,12 @@ interface Props {
   expense: number;
   savings: number;
   goalProgress: number;
+  period?: string;
 }
 
-export function DashboardClient({ profile, income, expense, savings, goalProgress }: Props) {
+export function DashboardClient({ profile, income, expense, savings, goalProgress, period }: Props) {
   const netWorth = useTotalNetWorth();
+  const activePeriod = period ?? getCurrentPeriod();
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -30,7 +32,7 @@ export function DashboardClient({ profile, income, expense, savings, goalProgres
           Olá{profile?.name ? `, ${profile.name.split(" ")[0]}` : ""}
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {getPeriodLabel(getCurrentPeriod())} · visão geral
+          {getPeriodLabel(activePeriod)} · visão geral
         </p>
       </motion.div>
 

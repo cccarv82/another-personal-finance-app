@@ -20,14 +20,15 @@ interface PainPoint {
 
 export function PainPoints() {
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [forceKey, setForceKey] = useState(0);
 
-  const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ai-pain-points"],
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["ai-pain-points", forceKey],
     queryFn: async () => {
       const res = await fetch("/api/ai/insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "pain_points" }),
+        body: JSON.stringify({ type: "pain_points", force: forceKey > 0 }),
       });
       if (!res.ok) throw new Error("Falha ao carregar insights");
       const json = await res.json() as { pain_points: PainPoint[] };
@@ -48,7 +49,7 @@ export function PainPoints() {
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            onClick={() => refetch()}
+            onClick={() => setForceKey((k) => k + 1)}
             disabled={isFetching}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />

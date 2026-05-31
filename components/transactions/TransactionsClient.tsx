@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useTransactions, useDeleteTransaction } from "@/lib/hooks/useTransactions";
+import { useTransactions, useDeleteTransaction, useDeleteTransactions } from "@/lib/hooks/useTransactions";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDateRelative } from "@/lib/utils/dates";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { AddTransactionButton } from "./AddTransactionButton";
 import { CSVImport } from "./CSVImport";
-import { Search, Trash2, Filter, Upload, Download } from "lucide-react";
+import { Search, Trash2, Filter, Upload, Download, CheckSquare, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { exportToCSV } from "@/lib/utils/csv-import";
@@ -27,7 +27,10 @@ export function TransactionsClient() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [importOpen, setImportOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const deleteTx = useDeleteTransaction();
+  const deleteTxs = useDeleteTransactions();
 
   const { data: transactions, isLoading } = useTransactions({
     search: search || undefined,
@@ -42,29 +45,91 @@ export function TransactionsClient() {
     grouped[key]!.push(tx);
   });
 
+  const allIds = (transactions ?? []).map((t) => t.id);
+  const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(allIds));
+  }
+
+  function exitSelection() {
+    setSelectionMode(false);
+    setSelected(new Set());
+  }
+
+  function handleBulkDelete() {
+    const ids = Array.from(selected);
+    toast.warning(`Remover ${ids.length} transaç${ids.length === 1 ? "ão" : "ões"}?`, {
+      action: {
+        label: "Confirmar",
+        onClick: () => {
+          deleteTxs.mutate(ids, { onSuccess: exitSelection });
+        },
+      },
+    });
+  }
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Transações</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setImportOpen(true)}>
-            <Upload className="w-3.5 h-3.5" /> Importar CSV
-          </Button>
-          <Button
-            variant="outline" size="sm" className="gap-1.5 text-xs"
-            onClick={() => {
-              if (!transactions?.length) return;
-              const csv = exportToCSV(transactions);
-              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a"); a.href = url; a.download = "transacoes.csv"; a.click();
-              URL.revokeObjectURL(url);
-            }}
-            disabled={!transactions?.length}
-          >
-            <Download className="w-3.5 h-3.5" /> Exportar
-          </Button>
-          <AddTransactionButton />
+          {!selectionMode && (
+            <>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setImportOpen(true)}>
+                <Upload className="w-3.5 h-3.5" /> Importar CSV
+              </Button>
+              <Button
+                variant="outline" size="sm" className="gap-1.5 text-xs"
+                onClick={() => {
+                  if (!transactions?.length) return;
+                  const csv = exportToCSV(transactions);
+                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a"); a.href = url; a.download = "transacoes.csv"; a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                disabled={!transactions?.length}
+              >
+                <Download className="w-3.5 h-3.5" /> Exportar
+              </Button>
+              <Button
+                variant="outline" size="sm" className="gap-1.5 text-xs"
+                onClick={() => setSelectionMode(true)}
+                disabled={!transactions?.length}
+              >
+                <CheckSquare className="w-3.5 h-3.5" /> Selecionar
+              </Button>
+              <AddTransactionButton />
+            </>
+          )}
+          {selectionMode && (
+            <>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={toggleAll}>
+                {allSelected ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                {allSelected ? "Desmarcar tudo" : "Selecionar tudo"}
+              </Button>
+              <Button
+                variant="destructive" size="sm" className="gap-1.5 text-xs"
+                onClick={handleBulkDelete}
+                disabled={selected.size === 0 || deleteTxs.isPending}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {selected.size > 0 ? `Deletar ${selected.size}` : "Deletar"}
+              </Button>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={exitSelection}>
+                <X className="w-3.5 h-3.5" /> Cancelar
+              </Button>
+            </>
+          )}
         </div>
       </div>
       <CSVImport open={importOpen} onClose={() => setImportOpen(false)} />
@@ -119,8 +184,20 @@ export function TransactionsClient() {
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.03 }}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border hover:border-border/60 transition-colors group"
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-lg bg-card border transition-colors group",
+                        selectionMode ? "cursor-pointer" : "",
+                        selected.has(tx.id) ? "border-primary bg-primary/5" : "border-border hover:border-border/60"
+                      )}
+                      onClick={selectionMode ? () => toggleSelect(tx.id) : undefined}
                     >
+                      {selectionMode && (
+                        <div className="shrink-0 text-muted-foreground">
+                          {selected.has(tx.id)
+                            ? <CheckSquare className="w-4 h-4 text-primary" />
+                            : <Square className="w-4 h-4" />}
+                        </div>
+                      )}
                       <div
                         className="w-8 h-8 rounded-md flex items-center justify-center text-sm shrink-0"
                         style={{
@@ -159,21 +236,23 @@ export function TransactionsClient() {
                         {formatCurrency(tx.amount)}
                       </span>
 
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                        onClick={() => {
-                          toast.warning("Remover transação?", {
-                            action: {
-                              label: "Confirmar",
-                              onClick: () => deleteTx.mutate(tx.id),
-                            },
-                          });
-                        }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      {!selectionMode && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                          onClick={() => {
+                            toast.warning("Remover transação?", {
+                              action: {
+                                label: "Confirmar",
+                                onClick: () => deleteTx.mutate(tx.id),
+                              },
+                            });
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                     </motion.div>
                   ))}
                 </div>

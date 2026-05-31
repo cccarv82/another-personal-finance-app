@@ -8,14 +8,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTransactions } from "@/lib/hooks/useTransactions";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDateRelative } from "@/lib/utils/dates";
-import { getMonthRange } from "@/lib/utils/dates";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export function RecentTransactions() {
-  const { start, end } = getMonthRange();
-  const { data, isLoading } = useTransactions({ startDate: start, endDate: end, limit: 7 });
+  const { data, isLoading } = useTransactions({ limit: 7 });
 
   return (
     <Card className="bg-card border-border">

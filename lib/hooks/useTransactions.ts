@@ -137,3 +137,23 @@ export function useDeleteTransaction() {
     },
   });
 }
+
+export function useDeleteTransactions() {
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("transactions").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      toast.success(`${ids.length} transaç${ids.length === 1 ? "ão removida" : "ões removidas"}`);
+    },
+    onError: (err) => {
+      toast.error("Erro ao remover: " + err.message);
+    },
+  });
+}

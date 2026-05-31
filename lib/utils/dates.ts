@@ -34,9 +34,19 @@ export function getPeriodLabel(period: string): string {
 }
 
 export function getMonthRange(period?: string): { start: string; end: string } {
-  const now = period ? new Date(period + "-01") : new Date();
-  const start = format(new Date(now.getFullYear(), now.getMonth(), 1), "yyyy-MM-dd");
-  const end = format(new Date(now.getFullYear(), now.getMonth() + 1, 0), "yyyy-MM-dd");
+  let year: number, month: number;
+  if (period) {
+    // Parse manually to avoid UTC-vs-local timezone shift from new Date("YYYY-MM-DD")
+    const [y, m] = period.split("-").map(Number);
+    year = y;
+    month = m - 1; // 0-indexed
+  } else {
+    const now = new Date();
+    year = now.getFullYear();
+    month = now.getMonth();
+  }
+  const start = format(new Date(year, month, 1), "yyyy-MM-dd");
+  const end = format(new Date(year, month + 1, 0), "yyyy-MM-dd");
   return { start, end };
 }
 

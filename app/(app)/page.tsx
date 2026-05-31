@@ -1,12 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
-import { getMonthRange } from "@/lib/utils/dates";
+import { getMonthRange, getCurrentPeriod } from "@/lib/utils/dates";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { start, end } = getMonthRange();
+  // Find the most recent month with data; fall back to current month
+  const latestTx = await supabase
+    .from("transactions")
+    .select("date")
+    .eq("user_id", user!.id)
+    .order("date", { ascending: false })
+    .limit(1)
+    .single();
+
+  const latestPeriod = latestTx.data?.date?.slice(0, 7) ?? getCurrentPeriod();
+  const currentPeriod = getCurrentPeriod();
+  // Use current month if it has data, otherwise the latest month that does
+  const activePeriod = latestPeriod >= currentPeriod ? currentPeriod : latestPeriod;
+  const { start, end } = getMonthRange(activePeriod);
 
   const [profileResult, txResult, goalsResult] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user!.id).single(),
@@ -36,6 +49,7 @@ export default async function DashboardPage() {
       expense={expense}
       savings={income - expense}
       goalProgress={goalProgress}
+      period={activePeriod}
     />
   );
 }

@@ -115,14 +115,17 @@ export function parseC6(csv: string): ParsedTransaction[] {
 
 export function parseGenericCSV(csv: string): ParsedTransaction[] {
   const lines = csv.trim().split("\n");
-  const header = lines[0].toLowerCase();
-  if (header.includes("nubank") || header.includes("category,title")) return parseNubank(csv);
-  if (header.includes("débito") && header.includes("crédito") && header.includes("itaú")) return parseItau(csv);
-  if (header.includes("inter")) return parseInter(csv);
-  if (header.includes("c6")) return parseC6(csv);
+  const first = lines[0].toLowerCase();
+  if (first.includes("nubank") || first.includes("category,title")) return parseNubank(csv);
+  if (first.includes("débito") && first.includes("crédito") && first.includes("itaú")) return parseItau(csv);
+  if (first.includes("inter")) return parseInter(csv);
+  if (first.includes("c6")) return parseC6(csv);
+
+  // If first line looks like a data row (starts with DD/MM/YYYY), don't skip it
+  const hasHeader = !lines[0].match(/^\d{2}\/\d{2}\/\d{4}/);
 
   // Generic fallback: date, description, amount
-  return lines.slice(1).map(line => {
+  return (hasHeader ? lines.slice(1) : lines).map(line => {
     const sep = line.includes(";") ? ";" : ",";
     const cols = line.split(sep).map(s => s.replace(/"/g,"").trim());
     if (cols.length < 3) return null;
