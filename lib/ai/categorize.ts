@@ -162,43 +162,50 @@ export async function categorizeTransactions(txs: ParsedTransaction[]): Promise<
   return [...matched, ...unmatchedCategorized];
 }
 
+type TxWithDbId = ParsedTransaction & { _dbId: string };
+
 export async function categorizeExistingTransactions(
   supabase: SupabaseClient<Database>,
   userId: string,
   onProgress?: (done: number, total: number) => void
 ): Promise<number> {
-  // Fetch uncategorized transactions
-  const { data: txs } = await supabase
+  const { data: txs, error: fetchError } = await supabase
     .from("transactions")
     .select("id, description, type, amount, date")
     .eq("user_id", userId)
     .is("category_id", null)
     .in("type", ["income", "expense"]);
 
+  if (fetchError) throw fetchError;
   if (!txs?.length) return 0;
 
-  // Map to ParsedTransaction format
-  const parsed = txs.map((t) => ({
+  // Map to ParsedTransaction format, carrying the DB id as _dbId
+  const parsed: TxWithDbId[] = txs.map((t) => ({
     date: t.date,
     description: t.description,
     amount: t.amount,
     type: t.type as "income" | "expense",
     bank: "",
-    _id: t.id,
+    _dbId: t.id,
   }));
 
+  // _dbId is preserved through spread in categorizeTransactions + resolveOrCreateCategories
   const categorized = await categorizeTransactions(parsed);
-  const withIds = await resolveOrCreateCategories(categorized as CategorizedTransaction[], supabase, userId);
+  const withCategoryIds = await resolveOrCreateCategories(
+    categorized as CategorizedTransaction[],
+    supabase,
+    userId
+  );
 
-  // Bulk update — group by category_id to minimize queries
+  // Group DB transaction ids by their resolved category_id
   const byCategory: Record<string, string[]> = {};
-  withIds.forEach((tx, i) => {
-    const dbId = (parsed[i] as typeof parsed[number] & { _id: string })._id;
+  for (const tx of withCategoryIds) {
+    const dbId = (tx as unknown as TxWithDbId)._dbId;
     if (tx.category_id && dbId) {
       if (!byCategory[tx.category_id]) byCategory[tx.category_id] = [];
       byCategory[tx.category_id].push(dbId);
     }
-  });
+  }
 
   let updated = 0;
   const entries = Object.entries(byCategory);

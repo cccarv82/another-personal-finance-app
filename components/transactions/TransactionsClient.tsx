@@ -51,8 +51,9 @@ export function TransactionsClient() {
       } else {
         toast.info("Nenhuma transação sem categoria encontrada");
       }
-    } catch {
-      toast.error("Erro ao categorizar");
+    } catch (err) {
+      console.error("[auto-categorize]", err);
+      toast.error("Erro ao categorizar: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setAutocategorizing(false);
     }
