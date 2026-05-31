@@ -146,8 +146,16 @@ export async function categorizeTransactions(txs: ParsedTransaction[]): Promise<
         body: JSON.stringify({ descriptions: chunk }),
       });
       if (res.ok) {
-        const data = await res.json() as Record<string, SuggestedCategory>;
-        Object.assign(aiResults, data);
+        const data = await res.json() as Record<string, Record<string, string>>;
+        // Normalize: AI may return `categoryName` instead of `name`
+        for (const [desc, raw] of Object.entries(data)) {
+          aiResults[desc] = {
+            name: raw.name ?? raw.categoryName ?? "Outros",
+            type: raw.type === "income" ? "income" : "expense",
+            icon: raw.icon ?? "📌",
+            color: raw.color ?? "#94a3b8",
+          };
+        }
       }
     }
   } catch {
