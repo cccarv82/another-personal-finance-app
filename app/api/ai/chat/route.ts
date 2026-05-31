@@ -4,7 +4,7 @@ import { buildChatSystemPrompt } from "@/lib/ai/prompts";
 
 export const runtime = "nodejs";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+const anthropic = new Anthropic();
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       const aiStream = anthropic.messages.stream({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 1024,
         system: systemPrompt,
         messages,

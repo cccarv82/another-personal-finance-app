@@ -5,7 +5,7 @@ import { getCurrentPeriod, getMonthRange } from "@/lib/utils/dates";
 
 export const runtime = "nodejs";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+const anthropic = new Anthropic();
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -74,12 +74,16 @@ export async function POST(request: Request) {
   );
 
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 1024,
     messages: [{ role: "user", content: prompt }],
   });
 
-  const content = JSON.parse((response.content[0] as { text: string }).text);
+  let rawText = (response.content[0] as { text: string }).text.trim();
+  if (rawText.startsWith("```")) {
+    rawText = rawText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+  }
+  const content = JSON.parse(rawText);
   const tokenCount = response.usage.input_tokens + response.usage.output_tokens;
 
   await supabase.from("ai_insights").insert({

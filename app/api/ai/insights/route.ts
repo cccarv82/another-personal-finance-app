@@ -61,12 +61,16 @@ export async function POST(request: Request) {
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 2048,
       messages: [{ role: "user", content: prompt }],
     });
 
-    const rawText = (response.content[0] as { text: string }).text;
+    let rawText = (response.content[0] as { text: string }).text.trim();
+    // Strip markdown code fences if model wraps response
+    if (rawText.startsWith("```")) {
+      rawText = rawText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+    }
     const content = JSON.parse(rawText);
     const tokenCount = response.usage.input_tokens + response.usage.output_tokens;
 
