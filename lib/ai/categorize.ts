@@ -162,6 +162,59 @@ export async function categorizeTransactions(txs: ParsedTransaction[]): Promise<
   return [...matched, ...unmatchedCategorized];
 }
 
+export async function categorizeExistingTransactions(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  onProgress?: (done: number, total: number) => void
+): Promise<number> {
+  // Fetch uncategorized transactions
+  const { data: txs } = await supabase
+    .from("transactions")
+    .select("id, description, type, amount, date")
+    .eq("user_id", userId)
+    .is("category_id", null)
+    .in("type", ["income", "expense"]);
+
+  if (!txs?.length) return 0;
+
+  // Map to ParsedTransaction format
+  const parsed = txs.map((t) => ({
+    date: t.date,
+    description: t.description,
+    amount: t.amount,
+    type: t.type as "income" | "expense",
+    bank: "",
+    _id: t.id,
+  }));
+
+  const categorized = await categorizeTransactions(parsed);
+  const withIds = await resolveOrCreateCategories(categorized as CategorizedTransaction[], supabase, userId);
+
+  // Bulk update — group by category_id to minimize queries
+  const byCategory: Record<string, string[]> = {};
+  withIds.forEach((tx, i) => {
+    const dbId = (parsed[i] as typeof parsed[number] & { _id: string })._id;
+    if (tx.category_id && dbId) {
+      if (!byCategory[tx.category_id]) byCategory[tx.category_id] = [];
+      byCategory[tx.category_id].push(dbId);
+    }
+  });
+
+  let updated = 0;
+  const entries = Object.entries(byCategory);
+  for (let i = 0; i < entries.length; i++) {
+    const [catId, ids] = entries[i];
+    const { error } = await supabase
+      .from("transactions")
+      .update({ category_id: catId })
+      .in("id", ids);
+    if (!error) updated += ids.length;
+    onProgress?.(i + 1, entries.length);
+  }
+
+  return updated;
+}
+
 export async function resolveOrCreateCategories(
   txs: CategorizedTransaction[],
   supabase: SupabaseClient<Database>,

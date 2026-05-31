@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useTransactions, useDeleteTransaction, useDeleteTransactions } from "@/lib/hooks/useTransactions";
+import { categorizeExistingTransactions } from "@/lib/ai/categorize";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDateRelative } from "@/lib/utils/dates";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { AddTransactionButton } from "./AddTransactionButton";
 import { CSVImport } from "./CSVImport";
-import { Search, Trash2, Filter, Upload, Download, CheckSquare, Square, X } from "lucide-react";
+import { Search, Trash2, Filter, Upload, Download, CheckSquare, Square, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { exportToCSV } from "@/lib/utils/csv-import";
+import { createClient } from "@/lib/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -29,8 +32,31 @@ export function TransactionsClient() {
   const [importOpen, setImportOpen] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [autocategorizing, setAutocategorizing] = useState(false);
   const deleteTx = useDeleteTransaction();
   const deleteTxs = useDeleteTransactions();
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  async function handleAutoCategorize() {
+    setAutocategorizing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const updated = await categorizeExistingTransactions(supabase, user.id);
+      if (updated > 0) {
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        queryClient.invalidateQueries({ queryKey: ["categories"] });
+        toast.success(`${updated} transaç${updated === 1 ? "ão categorizada" : "ões categorizadas"}`);
+      } else {
+        toast.info("Nenhuma transação sem categoria encontrada");
+      }
+    } catch {
+      toast.error("Erro ao categorizar");
+    } finally {
+      setAutocategorizing(false);
+    }
+  }
 
   const { data: transactions, isLoading } = useTransactions({
     search: search || undefined,
@@ -100,6 +126,15 @@ export function TransactionsClient() {
                 disabled={!transactions?.length}
               >
                 <Download className="w-3.5 h-3.5" /> Exportar
+              </Button>
+              <Button
+                variant="outline" size="sm" className="gap-1.5 text-xs"
+                onClick={handleAutoCategorize}
+                disabled={autocategorizing || !transactions?.length}
+              >
+                {autocategorizing
+                  ? <><Sparkles className="w-3.5 h-3.5 animate-pulse" /> Categorizando...</>
+                  : <><Sparkles className="w-3.5 h-3.5" /> Auto-categorizar</>}
               </Button>
               <Button
                 variant="outline" size="sm" className="gap-1.5 text-xs"
