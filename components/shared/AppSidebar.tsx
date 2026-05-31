@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/transactions", icon: ArrowLeftRight, label: "Transações" },
   { href: "/accounts", icon: Wallet, label: "Contas" },
   { href: "/goals", icon: Target, label: "Metas" },
@@ -41,7 +41,7 @@ export function AppSidebar() {
       {/* Nav */}
       <nav className="flex-1 py-4 px-2 space-y-0.5">
         {navItems.map(({ href, icon: Icon, label }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link
               key={href}

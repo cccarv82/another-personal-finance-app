@@ -6,7 +6,7 @@ import { LayoutDashboard, ArrowLeftRight, Target, Bot, BarChart3 } from "lucide-
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", icon: LayoutDashboard, label: "Início" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Início" },
   { href: "/transactions", icon: ArrowLeftRight, label: "Transações" },
   { href: "/goals", icon: Target, label: "Metas" },
   { href: "/ai", icon: Bot, label: "IA" },
@@ -20,7 +20,7 @@ export function MobileNav() {
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 backdrop-blur-md">
       <div className="flex items-center justify-around px-2 pb-safe">
         {navItems.map(({ href, icon: Icon, label }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link
               key={href}
