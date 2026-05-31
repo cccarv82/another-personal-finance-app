@@ -6,6 +6,7 @@ import { QuickStats } from "./QuickStats";
 import { PainPoints } from "./PainPoints";
 import { RecentTransactions } from "./RecentTransactions";
 import { GoalsOverview } from "./GoalsOverview";
+import { SpendingDNA } from "./SpendingDNA";
 import { useTotalNetWorth } from "@/lib/hooks/useAccounts";
 import type { Profile } from "@/lib/supabase/types";
 import { getPeriodLabel, getCurrentPeriod } from "@/lib/utils/dates";
@@ -59,6 +60,9 @@ export function DashboardClient({ profile, income, expense, savings, goalProgres
 
       {/* Goals */}
       <GoalsOverview />
+
+      {/* Spending DNA */}
+      <SpendingDNA />
     </div>
   );
 }

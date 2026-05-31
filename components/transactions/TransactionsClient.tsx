@@ -10,9 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { AddTransactionButton } from "./AddTransactionButton";
-import { Search, Trash2, Filter } from "lucide-react";
+import { CSVImport } from "./CSVImport";
+import { Search, Trash2, Filter, Upload, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { exportToCSV } from "@/lib/utils/csv-import";
 import {
   Select,
   SelectContent,
@@ -24,6 +26,7 @@ import {
 export function TransactionsClient() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [importOpen, setImportOpen] = useState(false);
   const deleteTx = useDeleteTransaction();
 
   const { data: transactions, isLoading } = useTransactions({
@@ -43,8 +46,28 @@ export function TransactionsClient() {
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Transações</h1>
-        <AddTransactionButton />
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setImportOpen(true)}>
+            <Upload className="w-3.5 h-3.5" /> Importar CSV
+          </Button>
+          <Button
+            variant="outline" size="sm" className="gap-1.5 text-xs"
+            onClick={() => {
+              if (!transactions?.length) return;
+              const csv = exportToCSV(transactions);
+              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a"); a.href = url; a.download = "transacoes.csv"; a.click();
+              URL.revokeObjectURL(url);
+            }}
+            disabled={!transactions?.length}
+          >
+            <Download className="w-3.5 h-3.5" /> Exportar
+          </Button>
+          <AddTransactionButton />
+        </div>
       </div>
+      <CSVImport open={importOpen} onClose={() => setImportOpen(false)} />
 
       {/* Filters */}
       <div className="flex gap-2">

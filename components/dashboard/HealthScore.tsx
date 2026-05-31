@@ -26,10 +26,15 @@ export function HealthScore({ monthlyIncome, goalProgress = 0 }: Props) {
     );
   }
 
-  const score = calculateHealthScore(transactions ?? [], monthlyIncome, goalProgress);
+  const hasData = (transactions ?? []).length > 0;
+  const score = hasData
+    ? calculateHealthScore(transactions ?? [], monthlyIncome, goalProgress)
+    : null;
 
   const circumference = 2 * Math.PI * 52;
-  const strokeDashoffset = circumference - (score.total / 100) * circumference;
+  const strokeDashoffset = score
+    ? circumference - (score.total / 100) * circumference
+    : circumference;
 
   return (
     <Card className="bg-card border-border">
@@ -45,29 +50,37 @@ export function HealthScore({ monthlyIncome, goalProgress = 0 }: Props) {
                 strokeWidth="10"
                 className="text-muted/30"
               />
-              <motion.circle
-                cx="60" cy="60" r="52"
-                fill="none"
-                stroke={score.color}
-                strokeWidth="10"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                initial={{ strokeDashoffset: circumference }}
-                animate={{ strokeDashoffset }}
-                transition={{ duration: 1.2, ease: "easeOut" }}
-              />
+              {score && (
+                <motion.circle
+                  cx="60" cy="60" r="52"
+                  fill="none"
+                  stroke={score.color}
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  initial={{ strokeDashoffset: circumference }}
+                  animate={{ strokeDashoffset }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                />
+              )}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <motion.span
-                className="text-4xl font-bold tabular-nums"
-                style={{ color: score.color }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                {score.total}
-              </motion.span>
-              <span className="text-xs text-muted-foreground capitalize">{score.label}</span>
+              {score ? (
+                <motion.span
+                  className="text-4xl font-bold tabular-nums"
+                  style={{ color: score.color }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  {score.total}
+                </motion.span>
+              ) : (
+                <span className="text-2xl text-muted-foreground">—</span>
+              )}
+              <span className="text-xs text-muted-foreground capitalize">
+                {score ? score.label : "sem dados"}
+              </span>
             </div>
           </div>
 
@@ -76,20 +89,25 @@ export function HealthScore({ monthlyIncome, goalProgress = 0 }: Props) {
           </div>
 
           {/* Breakdown */}
+          {!score && (
+            <p className="text-xs text-muted-foreground text-center px-4">
+              Adicione transações para calcular seu score
+            </p>
+          )}
           <div className="w-full space-y-2">
             {[
-              { label: "Taxa de poupança", value: score.savingsRate.score, weight: 30 },
-              { label: "Controle de gastos", value: score.spendingControl.score, weight: 25 },
-              { label: "Diversificação", value: score.diversification.score, weight: 20 },
-              { label: "Progresso de metas", value: score.goalProgress.score, weight: 15 },
-              { label: "Estabilidade", value: score.incomeStability.score, weight: 10 },
+              { label: "Taxa de poupança", value: score?.savingsRate.score ?? 0, weight: 30 },
+              { label: "Controle de gastos", value: score?.spendingControl.score ?? 0, weight: 25 },
+              { label: "Diversificação", value: score?.diversification.score ?? 0, weight: 20 },
+              { label: "Progresso de metas", value: score?.goalProgress.score ?? 0, weight: 15 },
+              { label: "Estabilidade", value: score?.incomeStability.score ?? 0, weight: 10 },
             ].map(({ label, value, weight }) => (
               <div key={label} className="flex items-center gap-2 text-xs">
                 <span className="text-muted-foreground w-32 shrink-0">{label}</span>
                 <div className="flex-1 bg-muted rounded-full h-1.5">
                   <motion.div
                     className="h-1.5 rounded-full"
-                    style={{ backgroundColor: score.color }}
+                    style={{ backgroundColor: score?.color ?? "#8A8A9A" }}
                     initial={{ width: 0 }}
                     animate={{ width: `${value}%` }}
                     transition={{ duration: 0.8, delay: 0.2 }}

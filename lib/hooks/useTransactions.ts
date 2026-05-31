@@ -1,11 +1,33 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Transaction, Inserts, Updates } from "@/lib/supabase/types";
 import { toast } from "sonner";
 
 const QUERY_KEY = "transactions";
+
+/** Subscribe to Supabase Realtime and invalidate queries on change */
+export function useTransactionsRealtime() {
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("transactions-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => {
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+        queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "accounts" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient, supabase]);
+}
 
 export function useTransactions(filters?: {
   startDate?: string;

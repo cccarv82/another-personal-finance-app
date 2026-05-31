@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/shared/AppSidebar";
 import { MobileNav } from "@/components/shared/MobileNav";
 import { AppHeader } from "@/components/shared/AppHeader";
+import { RealtimeProvider } from "@/components/shared/RealtimeProvider";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -10,6 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/login");
 
   return (
+    <RealtimeProvider>
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar */}
       <AppSidebar />
@@ -25,5 +27,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Mobile bottom nav */}
       <MobileNav />
     </div>
+    </RealtimeProvider>
   );
 }

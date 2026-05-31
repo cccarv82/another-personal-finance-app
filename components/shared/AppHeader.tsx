@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Bell, LogOut, Sparkles } from "lucide-react";
+import { Search, LogOut, Sparkles } from "lucide-react";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import {
@@ -60,6 +61,9 @@ export function AppHeader() {
           Consultor IA
         </Link>
       </Button>
+
+      {/* Theme toggle */}
+      <ThemeToggle />
 
       {/* Add transaction */}
       <AddTransactionButton />

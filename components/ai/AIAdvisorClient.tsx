@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, Sparkles, Loader2 } from "lucide-react";
 import { PainPoints } from "@/components/dashboard/PainPoints";
 import { MonthlyReport } from "./MonthlyReport";
+import { LevelDownSimulator } from "./LevelDownSimulator";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -28,7 +29,7 @@ export function AIAdvisorClient() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [activeTab, setActiveTab] = useState<"chat" | "insights" | "report">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "insights" | "report" | "simulator">("chat");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -106,7 +107,7 @@ export function AIAdvisorClient() {
 
       {/* Tab selector */}
       <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
-        {(["chat", "insights", "report"] as const).map((tab) => (
+        {(["chat", "insights", "report", "simulator"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -212,6 +213,12 @@ export function AIAdvisorClient() {
         {activeTab === "report" && (
           <motion.div key="report" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <MonthlyReport />
+          </motion.div>
+        )}
+
+        {activeTab === "simulator" && (
+          <motion.div key="simulator" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <LevelDownSimulator />
           </motion.div>
         )}
       </AnimatePresence>

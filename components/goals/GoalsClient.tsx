@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils/currency";
 import { Plus, Target, Check } from "lucide-react";
+import { GoalCalculator } from "./GoalCalculator";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 
@@ -202,6 +203,8 @@ export function GoalsClient() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <GoalCalculator />
     </div>
   );
 }

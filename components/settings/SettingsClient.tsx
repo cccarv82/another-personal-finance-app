@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import type { Profile } from "@/lib/supabase/types";
+import { CategoryManager } from "./CategoryManager";
+import { DiagnosticMode } from "./DiagnosticMode";
 
 interface Props {
   profile: Profile | null;
@@ -115,6 +117,9 @@ export function SettingsClient({ profile }: Props) {
           </Button>
         </CardContent>
       </Card>
+
+      <CategoryManager />
+      <DiagnosticMode />
     </div>
   );
 }
