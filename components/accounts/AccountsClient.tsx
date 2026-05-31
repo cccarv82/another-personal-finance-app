@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useAccounts, useCreateAccount, useTotalNetWorth } from "@/lib/hooks/useAccounts";
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,59 @@ import { formatCurrency } from "@/lib/utils/currency";
 import { Plus, Wallet, CreditCard, TrendingUp, Banknote, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AccountType } from "@/lib/supabase/types";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { format, subDays } from "date-fns";
+
+function AccountSparkline({ accountId, currentBalance }: { accountId: string; currentBalance: number }) {
+  const supabase = createClient();
+  const { data: sparkData } = useQuery({
+    queryKey: ["sparkline", accountId],
+    queryFn: async () => {
+      const since = format(subDays(new Date(), 30), "yyyy-MM-dd");
+      const { data } = await supabase
+        .from("transactions")
+        .select("date, amount, type")
+        .eq("account_id", accountId)
+        .gte("date", since)
+        .order("date", { ascending: true });
+
+      if (!data || data.length === 0) return null;
+
+      // Build daily running balance (walk backwards from current)
+      const days: Record<string, number> = {};
+      data.forEach((t) => {
+        const key = t.date;
+        const delta = t.type === "income" ? t.amount : t.type === "expense" ? -t.amount : 0;
+        days[key] = (days[key] || 0) + delta;
+      });
+
+      let balance = currentBalance;
+      const sorted = Object.keys(days).sort().reverse();
+      const points: { v: number }[] = [{ v: balance }];
+      sorted.forEach((d) => { balance -= days[d]; points.unshift({ v: balance }); });
+      return points.slice(-15);
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  if (!sparkData || sparkData.length < 2) return null;
+
+  const isUp = sparkData[sparkData.length - 1].v >= sparkData[0].v;
+
+  return (
+    <ResponsiveContainer width="100%" height={32}>
+      <LineChart data={sparkData}>
+        <Line
+          type="monotone"
+          dataKey="v"
+          stroke={isUp ? "#00D4AA" : "#FF4D6A"}
+          strokeWidth={1.5}
+          dot={false}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
 
 const ACCOUNT_ICONS: Record<AccountType, React.ElementType> = {
   checking: Building2,
@@ -108,6 +163,9 @@ export function AccountsClient() {
                     <div>
                       <p className="text-xl font-bold tabular-nums">{formatCurrency(acc.balance)}</p>
                       <p className="text-sm text-muted-foreground mt-0.5">{acc.name}</p>
+                    </div>
+                    <div className="mt-3 -mx-1">
+                      <AccountSparkline accountId={acc.id} currentBalance={acc.balance} />
                     </div>
                   </CardContent>
                 </Card>
